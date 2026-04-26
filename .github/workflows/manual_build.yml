@@ -1,0 +1,65 @@
+name: Manual Build AvaotaOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      config-board:
+        description: '开发板型号'
+        required: true
+        default: 'avaota-a1'
+        type: choice
+        options:
+          - avaota-a1
+          - avaota-c1
+          - yuzuki-chameleon
+      config-distro:
+        description: '发行版'
+        required: true
+        default: 'bookworm'
+        type: choice
+        options:
+          - focal      # Ubuntu 20.04
+          - jammy      # Ubuntu 22.04  
+          - noble      # Ubuntu 24.04
+          - bookworm   # Debian 12
+      config-distro-type:
+        description: '桌面环境'
+        required: true
+        default: 'gnome'
+        type: choice
+        options:
+          - cli
+          - xfce
+          - gnome
+          - kde
+          - lxqt
+      config-kernel-target:
+        description: '内核版本'
+        required: true
+        default: 'bsp'
+        type: choice
+        options:
+          - bsp
+          - mainline-lts
+          - mainline-latest
+      config-release_id:
+        description: 'Release ID（留空则不上传到Release）'
+        required: false
+        type: string
+        default: ''
+      config-release_ver:
+        description: '版本号'
+        required: true
+        default: '0.3.0.4'
+
+jobs:
+  call-build:
+    uses: ./.github/workflows/Build-AvaotaOS.yml
+    with:
+      config-board: ${{ github.event.inputs.config-board }}
+      config-distro: ${{ github.event.inputs.config-distro }}
+      config-distro-type: ${{ github.event.inputs.config-distro-type }}
+      config-kernel-target: ${{ github.event.inputs.config-kernel-target }}
+      config-release_id: ${{ github.event.inputs.config-release_id }}
+      config-release_ver: ${{ github.event.inputs.config-release_ver }}
+    secrets: inherit
