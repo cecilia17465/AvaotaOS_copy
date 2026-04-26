@@ -57,6 +57,8 @@ jobs:
     with:
       config-board: ${{ github.event.inputs.config-board }}
       config-kernel-target: ${{ github.event.inputs.config-kernel-target }}
+      config-release_id: ${{ github.run_id }}
+      config-release_ver: ${{ github.event.inputs.config-release_ver }}
     secrets: inherit
 
   build-image:
