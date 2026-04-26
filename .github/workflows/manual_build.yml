@@ -1,4 +1,4 @@
-name: Build Release
+name: Manual Build Release
 
 on:
   workflow_dispatch:
@@ -67,7 +67,7 @@ jobs:
       config-distro: ${{ github.event.inputs.config-distro }}
       config-distro-type: ${{ github.event.inputs.config-distro-type }}
       config-kernel-target: ${{ github.event.inputs.config-kernel-target }}
-      config-release_id: ''
+      config-release_id: ${{ github.run_id }}
       config-release_ver: ${{ github.event.inputs.config-release_ver }}
     secrets: inherit
 
