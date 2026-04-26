@@ -52,51 +52,35 @@ permissions:
   contents: write
 
 jobs:
+  prepare_release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.last-release.outputs.id }}
+      release_ver: ${{ steps.last-release.outputs.release }}
+    steps:
+      - id: last-release
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          repository: ${{ github.repository }}
+
   build-kernel:
+    needs: prepare_release
     uses: ./.github/workflows/Build-AvaotaOS-Kernel.yaml
     with:
       config-board: ${{ github.event.inputs.config-board }}
       config-kernel-target: ${{ github.event.inputs.config-kernel-target }}
-      config-release_id: ${{ github.run_id }}
+      config-release_id: ${{ needs.prepare_release.outputs.release_id }}
       config-release_ver: ${{ github.event.inputs.config-release_ver }}
     secrets: inherit
 
   build-image:
-    needs: build-kernel
+    needs: [prepare_release, build-kernel]
     uses: ./.github/workflows/Build-AvaotaOS.yaml
     with:
       config-board: ${{ github.event.inputs.config-board }}
       config-distro: ${{ github.event.inputs.config-distro }}
       config-distro-type: ${{ github.event.inputs.config-distro-type }}
       config-kernel-target: ${{ github.event.inputs.config-kernel-target }}
-      config-release_id: ${{ github.run_id }}
+      config-release_id: ${{ needs.prepare_release.outputs.release_id }}
       config-release_ver: ${{ github.event.inputs.config-release_ver }}
     secrets: inherit
-
-  create-release:
-    needs: build-image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: 下载编译产物
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/
-
-      - name: 创建 Release 并上传
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ github.event.inputs.config-release_ver }}-${{ github.event.inputs.config-board }}-${{ github.event.inputs.config-distro }}-${{ github.event.inputs.config-distro-type }}-${{ github.run_number }}
-          name: "AvaotaOS ${{ github.event.inputs.config-release_ver }} - ${{ github.event.inputs.config-board }} - ${{ github.event.inputs.config-distro }} (${{ github.event.inputs.config-distro-type }})"
-          body: |
-            自动编译的 AvaotaOS 镜像
-            
-            - 开发板: ${{ github.event.inputs.config-board }}
-            - 发行版: ${{ github.event.inputs.config-distro }}
-            - 桌面环境: ${{ github.event.inputs.config-distro-type }}
-            - 内核: ${{ github.event.inputs.config-kernel-target }}
-          files: artifacts/**/*.img.xz*
-          draft: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
