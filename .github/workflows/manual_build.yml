@@ -52,8 +52,13 @@ on:
         required: true
         default: '0.3.0.4'
 
+permissions:
+  contents: write
+
 jobs:
   call-build:
+    permissions:
+      contents: write  
     uses: ./.github/workflows/Build-AvaotaOS.yaml
     with:
       config-board: ${{ github.event.inputs.config-board }}
