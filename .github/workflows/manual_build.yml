@@ -1,4 +1,4 @@
-name: Manual Build AvaotaOS
+name: Build Release
 
 on:
   workflow_dispatch:
@@ -21,6 +21,7 @@ on:
           - focal      # Ubuntu 20.04
           - jammy      # Ubuntu 22.04  
           - noble      # Ubuntu 24.04
+          - bullseye   # Debian 11
           - bookworm   # Debian 12
       config-distro-type:
         description: '桌面环境'
@@ -42,11 +43,6 @@ on:
           - bsp
           - mainline-lts
           - mainline-latest
-      config-release_id:
-        description: 'Release ID（留空则不上传到Release）'
-        required: false
-        type: string
-        default: ''
       config-release_ver:
         description: '版本号'
         required: true
@@ -56,15 +52,54 @@ permissions:
   contents: write
 
 jobs:
-  call-build:
-    permissions:
-      contents: write  
+  # 第一步：编译内核包
+  build-kernel:
+    uses: ./.github/workflows/Build-AvaotaOS-Kernel.yaml
+    with:
+      config-board: ${{ github.event.inputs.config-board }}
+      config-kernel-target: ${{ github.event.inputs.config-kernel-target }}
+    secrets: inherit
+
+  # 第二步：编译完整系统镜像（依赖内核包）
+  build-image:
+    needs: build-kernel
     uses: ./.github/workflows/Build-AvaotaOS.yaml
     with:
       config-board: ${{ github.event.inputs.config-board }}
       config-distro: ${{ github.event.inputs.config-distro }}
       config-distro-type: ${{ github.event.inputs.config-distro-type }}
       config-kernel-target: ${{ github.event.inputs.config-kernel-target }}
-      config-release_id: ${{ github.event.inputs.config-release_id }}
+      config-release_id: ''  # 留空，让后续步骤统一上传
       config-release_ver: ${{ github.event.inputs.config-release_ver }}
     secrets: inherit
+
+  # 第三步：上传到 Release
+  create-release:
+    needs: build-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 下载编译产物
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: 创建 Release 并上传
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.config-release_ver }}-${{ github.event.inputs.config-board }}-${{ github.event.inputs.config-distro }}-${{ github.event.inputs.config-distro-type }}-${{ github.run_number }}
+          name: "AvaotaOS ${{ github.event.inputs.config-release_ver }} - ${{ github.event.inputs.config-board }} - ${{ github.event.inputs.config-distro }} (${{ github.event.inputs.config-distro-type }})"
+          body: |
+            自动编译的 AvaotaOS 镜像
+            
+            - 开发板: ${{ github.event.inputs.config-board }}
+            - 发行版: ${{ github.event.inputs.config-distro }}
+            - 桌面环境: ${{ github.event.inputs.config-distro-type }}
+            - 内核: ${{ github.event.inputs.config-kernel-target }}
+            - 版本号: ${{ github.event.inputs.config-release_ver }}
+          files: artifacts/**/*.img.xz*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
