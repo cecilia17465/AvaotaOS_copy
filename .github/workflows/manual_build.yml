@@ -54,7 +54,7 @@ on:
 
 jobs:
   call-build:
-    uses: ./.github/workflows/build-avaotaos.yml
+    uses: ./.github/workflows/Build-AvaotaOS.yaml
     with:
       config-board: ${{ github.event.inputs.config-board }}
       config-distro: ${{ github.event.inputs.config-distro }}
