@@ -23,6 +23,7 @@ on:
           - noble
           - bullseye
           - bookworm
+          - trixie
       config-distro-type:
         description: '桌面环境'
         required: true
